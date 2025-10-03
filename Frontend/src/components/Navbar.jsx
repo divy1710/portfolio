@@ -74,9 +74,7 @@ const Navbar = () => {
               <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
                 DK
               </span>
-              <span className={isScrolled ? "text-gray-900" : "text-white"}>
-                ivy
-              </span>
+              
             </div>
           </div>
 

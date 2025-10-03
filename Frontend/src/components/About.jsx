@@ -59,7 +59,9 @@ const About = () => {
               user-centric solutions.
             </p>
 
-            <p className="text-lg text-gray-700 leading-relaxed hover:text-gray-900 transition-colors duration-300">
+            <p
+              className={`text-lg ${colors.textSecondary} leading-relaxed transition-colors duration-300`}
+            >
               I thrive on challenges that push the boundaries of conventional
               web development, constantly learning new technologies and
               methodologies to stay at the forefront of the ever-evolving tech
@@ -165,19 +167,19 @@ const About = () => {
                   <div className="flex justify-center space-x-4">
                     {[
                       {
-                        number: "15+",
+                        number: "7+",
                         label: "Projects",
-                        color: "text-blue-600",
+                        color: "text-blue-500",
                       },
                       {
                         number: "2+",
                         label: "Years Learning",
-                        color: "text-purple-600",
+                        color: "text-purple-500",
                       },
                       {
                         number: "100%",
                         label: "Dedicated",
-                        color: "text-green-600",
+                        color: "text-green-500",
                       },
                     ].map((stat, index) => (
                       <div
@@ -189,7 +191,9 @@ const About = () => {
                         >
                           {stat.number}
                         </div>
-                        <div className="text-sm text-gray-600 group-hover:text-gray-800 transition-colors duration-300">
+                        <div
+                          className={`text-sm ${colors.textSecondary} group-hover:${colors.textPrimary} transition-colors duration-300`}
+                        >
                           {stat.label}
                         </div>
                       </div>

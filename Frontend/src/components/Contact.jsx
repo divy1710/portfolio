@@ -1,6 +1,52 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { useInView } from "../hooks/useAnimations";
 import { useTheme } from "../contexts/ThemeContext";
+
+// Move AnimatedInput outside the component to prevent recreation
+const AnimatedInput = React.memo(
+  ({
+    name,
+    type = "text",
+    placeholder,
+    isTextarea = false,
+    value,
+    onChange,
+    focusedField,
+    onFocus,
+    onBlur,
+  }) => {
+    const hasValue = value && value.length > 0;
+    const InputComponent = isTextarea ? "textarea" : "input";
+
+    return (
+      <div className="relative">
+        <InputComponent
+          type={isTextarea ? undefined : type}
+          id={name}
+          name={name}
+          value={value}
+          onChange={onChange}
+          required
+          rows={isTextarea ? 5 : undefined}
+          className="w-full px-4 py-3 bg-white/10 border-2 border-gray-600 rounded-lg text-white placeholder-transparent focus:outline-none focus:border-blue-500 focus:shadow-lg focus:shadow-blue-500/20 hover:border-gray-500 transition-all duration-300 resize-none"
+          placeholder={placeholder}
+          onFocus={() => onFocus(name)}
+          onBlur={() => onBlur()}
+        />
+        <label
+          htmlFor={name}
+          className={`absolute left-4 transition-all duration-300 pointer-events-none ${
+            focusedField === name || hasValue
+              ? "-top-2 text-sm text-blue-400 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 px-2"
+              : "top-3 text-gray-400"
+          }`}
+        >
+          {placeholder}
+        </label>
+      </div>
+    );
+  }
+);
 
 const Contact = () => {
   const { colors, isDark } = useTheme();
@@ -16,32 +62,53 @@ const Contact = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
+  const handleChange = useCallback((e) => {
+    setFormData((prev) => ({
+      ...prev,
       [e.target.name]: e.target.value,
-    });
-  };
+    }));
+  }, []);
+
+  const handleFocus = useCallback((fieldName) => {
+    setFocusedField(fieldName);
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    setFocusedField(null);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate form submission
-    setTimeout(() => {
+    try {
+      // Create mailto link with form data
+      const subject = encodeURIComponent(
+        `Portfolio Contact: ${formData.subject || "New Message"}`
+      );
+      const body = encodeURIComponent(
+        `Name: ${formData.name}\n` +
+          `Email: ${formData.email}\n` +
+          `Subject: ${formData.subject}\n\n` +
+          `Message:\n${formData.message}\n\n` +
+          `---\nSent from your portfolio contact form`
+      );
+      const mailtoLink = `mailto:divykalathiya17@gmail.com?subject=${subject}&body=${body}`;
+
+      // Open email client
+      window.open(mailtoLink, "_blank");
+
+      // Show success message and reset form
+      setTimeout(() => {
+        setIsSubmitting(false);
+        alert("Email client opened! Your message is ready to send.");
+        setFormData({ name: "", email: "", subject: "", message: "" });
+      }, 1000);
+    } catch (error) {
       setIsSubmitting(false);
-      alert("Thank you for your message! I'll get back to you soon.");
-      setFormData({ name: "", email: "", subject: "", message: "" });
-    }, 2000);
-  };
-
-  const handleFocus = (fieldName) => {
-    setFocusedField(fieldName);
-  };
-
-  const handleBlur = (fieldName) => {
-    if (!formData[fieldName]) {
-      setFocusedField(null);
+      alert(
+        "Sorry, there was an error. Please try emailing me directly at divykalathiya17@gmail.com"
+      );
     }
   };
 
@@ -50,7 +117,7 @@ const Contact = () => {
       icon: "📧",
       title: "Email",
       value: "divykalathiya17@gmail.com",
-      link: "mailto:divy.kalathiya@email.com",
+      link: "mailto:divykalathiya17@gmail.com",
       color: "from-blue-400 to-cyan-400",
     },
     {
@@ -68,50 +135,6 @@ const Contact = () => {
       color: "from-gray-700 to-gray-900",
     },
   ];
-
-  // Custom input field component with floating label animation
-  const AnimatedInput = ({
-    name,
-    type = "text",
-    placeholder,
-    isTextarea = false,
-  }) => {
-    const isActive = focusedField === name || formData[name];
-
-    const InputComponent = isTextarea ? "textarea" : "input";
-
-    return (
-      <div className="relative">
-        <InputComponent
-          type={isTextarea ? undefined : type}
-          id={name}
-          name={name}
-          value={formData[name]}
-          onChange={handleChange}
-          onFocus={() => handleFocus(name)}
-          onBlur={() => handleBlur(name)}
-          required
-          rows={isTextarea ? 5 : undefined}
-          className={`w-full px-4 py-3 bg-white/10 border-2 rounded-lg text-white placeholder-transparent focus:outline-none transition-all duration-300 ${
-            isActive
-              ? "border-blue-500 shadow-lg shadow-blue-500/20"
-              : "border-gray-600 hover:border-gray-500"
-          } ${isTextarea ? "resize-none" : ""}`}
-          placeholder={placeholder}
-        />
-        <label
-          htmlFor={name}
-          className={`absolute left-4 transition-all duration-300 pointer-events-none ${
-            isActive
-              ? "-top-2 text-sm text-blue-400 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 px-2"
-              : "top-3 text-gray-400"
-          }`}
-        >
-          {placeholder}
-        </label>
-      </div>
-    );
-  };
 
   return (
     <section
@@ -172,7 +195,7 @@ const Contact = () => {
               </p>
             </div>
 
-            {/* Contact Methods with enhanced animations */}
+            {/* Contact Methods */}
             <div className="grid sm:grid-cols-2 gap-6">
               {contactInfo.map((contact, index) => (
                 <a
@@ -197,17 +220,7 @@ const Contact = () => {
                 >
                   <div className="flex items-center space-x-4">
                     <div
-                      className={`w-12 h-12 bg-gradient-to-r ${
-                        contact.color
-                      } rounded-xl flex items-center justify-center text-white text-xl transition-all duration-500 ${
-                        contact.title === "LinkedIn"
-                          ? "group-hover:scale-110 group-hover:rotate-6"
-                          : contact.title === "GitHub"
-                          ? "group-hover:scale-110 group-hover:-rotate-6"
-                          : contact.title === "Email"
-                          ? "group-hover:scale-110 group-hover:animate-bounce"
-                          : "group-hover:scale-110 group-hover:rotate-12"
-                      }`}
+                      className={`w-12 h-12 bg-gradient-to-r ${contact.color} rounded-xl flex items-center justify-center text-white text-xl transition-all duration-500`}
                     >
                       {contact.icon}
                     </div>
@@ -222,43 +235,6 @@ const Contact = () => {
                   </div>
                 </a>
               ))}
-            </div>
-
-            {/* Quick Stats */}
-            <div
-              className={`bg-white/10 backdrop-blur-sm rounded-2xl p-6 transition-all duration-800 delay-600 ${
-                titleInView
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-8"
-              }`}
-            >
-              <h4 className="text-white font-semibold mb-4">Quick Stats</h4>
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="group cursor-pointer">
-                  <div className="text-2xl font-bold text-blue-400 group-hover:scale-125 transition-transform duration-300">
-                    24h
-                  </div>
-                  <div className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors duration-300">
-                    Response Time
-                  </div>
-                </div>
-                <div className="group cursor-pointer">
-                  <div className="text-2xl font-bold text-purple-400 group-hover:scale-125 transition-transform duration-300">
-                    100%
-                  </div>
-                  <div className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors duration-300">
-                    Commitment
-                  </div>
-                </div>
-                <div className="group cursor-pointer">
-                  <div className="text-2xl font-bold text-green-400 group-hover:scale-125 transition-transform duration-300">
-                    15+
-                  </div>
-                  <div className="text-gray-400 text-sm group-hover:text-gray-300 transition-colors duration-300">
-                    Projects Done
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -277,19 +253,45 @@ const Contact = () => {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid sm:grid-cols-2 gap-6">
-                <AnimatedInput name="name" placeholder="Your Name" />
+                <AnimatedInput
+                  name="name"
+                  placeholder="Your Name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  focusedField={focusedField}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
+                />
                 <AnimatedInput
                   name="email"
                   type="email"
                   placeholder="Email Address"
+                  value={formData.email}
+                  onChange={handleChange}
+                  focusedField={focusedField}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
                 />
               </div>
 
-              <AnimatedInput name="subject" placeholder="Subject" />
+              <AnimatedInput
+                name="subject"
+                placeholder="Subject"
+                value={formData.subject}
+                onChange={handleChange}
+                focusedField={focusedField}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+              />
               <AnimatedInput
                 name="message"
                 placeholder="Your Message"
                 isTextarea={true}
+                value={formData.message}
+                onChange={handleChange}
+                focusedField={focusedField}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
               />
 
               <button
@@ -324,47 +326,6 @@ const Contact = () => {
                 )}
               </button>
             </form>
-
-            <div className="mt-6 text-center">
-              <p className="text-gray-400 text-sm">
-                I typically respond within 24 hours. Looking forward to
-                connecting with you!
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div
-          className={`mt-20 pt-8 border-t border-gray-700 text-center transition-all duration-800 delay-800 ${
-            formInView
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-10"
-          }`}
-        >
-          <p className="text-gray-400">
-            © 2024 Divy Kalathiya. Built with ❤️ using React, Tailwind CSS, and
-            lots of coffee.
-          </p>
-          <div className="flex justify-center space-x-6 mt-4">
-            <a
-              href="https://linkedin.com/in/divykalathiya"
-              className="text-gray-400 hover:text-blue-400 transition-all duration-300 transform hover:scale-110 hover:-translate-y-1"
-            >
-              LinkedIn
-            </a>
-            <a
-              href="https://github.com/divykalathiya"
-              className="text-gray-400 hover:text-white transition-all duration-300 transform hover:scale-110 hover:-translate-y-1"
-            >
-              GitHub
-            </a>
-            <a
-              href="mailto:divy.kalathiya@email.com"
-              className="text-gray-400 hover:text-green-400 transition-all duration-300 transform hover:scale-110 hover:-translate-y-1"
-            >
-              Email
-            </a>
           </div>
         </div>
       </div>
